@@ -22,17 +22,24 @@ public class ResolvedJarJarArtifact {
     private final String versionRange;
     private final String group;
     private final String artifact;
+    private final String classifier;
 
     public ResolvedJarJarArtifact(File file, String embeddedFilename, String version, String versionRange, String group, String artifact) {
+        this(file,  embeddedFilename, version, versionRange, group, artifact, null);
+    }
+
+    public ResolvedJarJarArtifact(File file, String embeddedFilename, String version, String versionRange, String group, String artifact, String classifier) {
         this.file = file;
         this.embeddedFilename = embeddedFilename;
         this.version = version;
         this.versionRange = versionRange;
         this.group = group;
         this.artifact = artifact;
+        this.classifier = classifier;
     }
 
     public ContainedJarIdentifier createContainedJarIdentifier() {
+//        return new ContainedJarIdentifier(group, artifact, classifier);
         return new ContainedJarIdentifier(group, artifact);
     }
 

@@ -10,7 +10,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+
 import net.neoforged.jarjar.metadata.ContainedJarIdentifier;
+import net.neoforged.moddevgradle.internal.utils.ClassifierCache;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException;
 import org.apache.maven.artifact.versioning.VersionRange;
@@ -37,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class JarJarArtifacts {
     private static final Logger LOG = LoggerFactory.getLogger(JarJarArtifacts.class);
+    private static final ClassifierCache CLASSIFIER_CACHE = new ClassifierCache();
     private transient final SetProperty<ResolvedComponentResult> includedRootComponents;
     private transient final SetProperty<ResolvedArtifactResult> includedArtifacts;
 
@@ -67,9 +70,12 @@ public abstract class JarJarArtifacts {
     }
 
     public void configuration(Configuration jarJarConfiguration) {
+        // Cache artifact path
+        jarJarConfiguration.getArtifacts().forEach(ClassifierCache.INSTANCE::cache);
+
         getIncludedArtifacts().addAll(jarJarConfiguration.getIncoming().artifactView(config -> {
             config.attributes(
-                    attr -> attr.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, ArtifactTypeDefinition.JAR_TYPE));
+                attr -> attr.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, ArtifactTypeDefinition.JAR_TYPE));
         }).getArtifacts().getResolvedArtifacts());
         getIncludedRootComponents().add(jarJarConfiguration.getIncoming().getResolutionResult().getRootComponent());
     }
@@ -101,6 +107,11 @@ public abstract class JarJarArtifacts {
                 continue;
             }
 
+            // Query by path
+            String classifier = ClassifierCache.INSTANCE.query(result);
+
+            // waiting for JarJar PR to be approved
+//            ContainedJarIdentifier jarIdentifier = new ContainedJarIdentifier(artifactIdentifier.group(), artifactIdentifier.name(), classifier);
             ContainedJarIdentifier jarIdentifier = new ContainedJarIdentifier(artifactIdentifier.group(), artifactIdentifier.name());
             if (!knownIdentifiers.contains(jarIdentifier)) {
                 continue;
@@ -112,7 +123,7 @@ public abstract class JarJarArtifacts {
             if (version != null && versionRange != null) {
                 var embeddedFilename = getEmbeddedFilename(result, jarIdentifier);
 
-                var dataEntry = new ResolvedJarJarArtifact(result.getFile(), embeddedFilename, version, versionRange, jarIdentifier.group(), jarIdentifier.artifact());
+                var dataEntry = new ResolvedJarJarArtifact(result.getFile(), embeddedFilename, version, versionRange, jarIdentifier.group(), jarIdentifier.artifact(), classifier);
                 if (!filesAdded.add(embeddedFilename)) {
                     throw new GradleException("Trying to add multiple files at the same embedded location: " + embeddedFilename);
                 }
@@ -120,8 +131,8 @@ public abstract class JarJarArtifacts {
             }
         }
         return data.stream()
-                .sorted(Comparator.comparing(d -> d.getGroup() + ":" + d.getArtifact()))
-                .collect(Collectors.toList());
+            .sorted(Comparator.comparing(d -> d.getGroup() + ":" + d.getArtifact()))
+            .collect(Collectors.toList());
     }
 
     private static String getEmbeddedFilename(ResolvedArtifactResult result, ContainedJarIdentifier jarIdentifier) {
@@ -208,17 +219,17 @@ public abstract class JarJarArtifacts {
         ArtifactIdentifier moduleIdentifier = null;
         if (variant.getOwner() instanceof ModuleComponentIdentifier moduleComponentIdentifier) {
             moduleIdentifier = new ArtifactIdentifier(
-                    moduleComponentIdentifier.getGroup(),
-                    moduleComponentIdentifier.getModule(),
-                    moduleComponentIdentifier.getVersion());
+                moduleComponentIdentifier.getGroup(),
+                moduleComponentIdentifier.getModule(),
+                moduleComponentIdentifier.getVersion());
         }
 
         List<ArtifactIdentifier> capabilityIdentifiers = variant.getCapabilities().stream()
-                .map(capability -> new ArtifactIdentifier(
-                        capability.getGroup(),
-                        capability.getName(),
-                        capability.getVersion()))
-                .toList();
+            .map(capability -> new ArtifactIdentifier(
+                capability.getGroup(),
+                capability.getName(),
+                capability.getVersion()))
+            .toList();
 
         if (moduleIdentifier != null && capabilityIdentifiers.contains(moduleIdentifier)) {
             return moduleIdentifier;
@@ -270,5 +281,6 @@ public abstract class JarJarArtifacts {
     /**
      * Simple artifact identifier class which only references group, name and version.
      */
-    private record ArtifactIdentifier(String group, String name, String version) {}
+    private record ArtifactIdentifier(String group, String name, String version) {
+    }
 }
