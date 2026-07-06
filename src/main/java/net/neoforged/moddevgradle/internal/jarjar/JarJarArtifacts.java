@@ -39,7 +39,6 @@ import org.slf4j.LoggerFactory;
 
 public abstract class JarJarArtifacts {
     private static final Logger LOG = LoggerFactory.getLogger(JarJarArtifacts.class);
-    private static final ClassifierCache CLASSIFIER_CACHE = new ClassifierCache();
     private transient final SetProperty<ResolvedComponentResult> includedRootComponents;
     private transient final SetProperty<ResolvedArtifactResult> includedArtifacts;
 
