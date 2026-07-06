@@ -12,16 +12,12 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import net.neoforged.jarjar.metadata.ContainedJarIdentifier;
-import net.neoforged.moddevgradle.internal.utils.ClassifierCache;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException;
 import org.apache.maven.artifact.versioning.VersionRange;
 import org.gradle.api.GradleException;
 import org.gradle.api.artifacts.Configuration;
-import org.gradle.api.artifacts.component.ComponentSelector;
-import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
-import org.gradle.api.artifacts.component.ModuleComponentSelector;
-import org.gradle.api.artifacts.component.ProjectComponentIdentifier;
+import org.gradle.api.artifacts.component.*;
 import org.gradle.api.artifacts.result.DependencyResult;
 import org.gradle.api.artifacts.result.ResolvedArtifactResult;
 import org.gradle.api.artifacts.result.ResolvedComponentResult;
@@ -33,6 +29,8 @@ import org.gradle.api.provider.ListProperty;
 import org.gradle.api.provider.SetProperty;
 import org.gradle.api.tasks.Internal;
 import org.gradle.api.tasks.Nested;
+import org.gradle.internal.component.external.model.DefaultModuleComponentArtifactIdentifier;
+import org.gradle.internal.component.model.ComponentArtifactMetadata;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,9 +67,6 @@ public abstract class JarJarArtifacts {
     }
 
     public void configuration(Configuration jarJarConfiguration) {
-        // Cache artifact path
-        jarJarConfiguration.getArtifacts().forEach(ClassifierCache.INSTANCE::cache);
-
         getIncludedArtifacts().addAll(jarJarConfiguration.getIncoming().artifactView(config -> {
             config.attributes(
                 attr -> attr.attribute(ArtifactTypeDefinition.ARTIFACT_TYPE_ATTRIBUTE, ArtifactTypeDefinition.JAR_TYPE));
@@ -101,16 +96,12 @@ public abstract class JarJarArtifacts {
             LOG.debug("About to embed artifact {} ({})", result, result.getFile().getAbsolutePath());
             ResolvedVariantResult variant = result.getVariant();
 
+
             ArtifactIdentifier artifactIdentifier = capabilityOrModule(variant);
             if (artifactIdentifier == null) {
                 continue;
             }
 
-            // Query by path
-            String classifier = ClassifierCache.INSTANCE.query(result);
-
-            // waiting for JarJar PR to be approved
-//            ContainedJarIdentifier jarIdentifier = new ContainedJarIdentifier(artifactIdentifier.group(), artifactIdentifier.name(), classifier);
             ContainedJarIdentifier jarIdentifier = new ContainedJarIdentifier(artifactIdentifier.group(), artifactIdentifier.name());
             if (!knownIdentifiers.contains(jarIdentifier)) {
                 continue;
@@ -121,6 +112,14 @@ public abstract class JarJarArtifacts {
 
             if (version != null && versionRange != null) {
                 var embeddedFilename = getEmbeddedFilename(result, jarIdentifier);
+
+                String classifier = "";
+                ComponentArtifactIdentifier identifier = result.getId();
+                if (identifier instanceof ComponentArtifactMetadata metadata) {
+                    classifier = metadata.getName().getClassifier();
+                } else if (identifier instanceof DefaultModuleComponentArtifactIdentifier moduleIdentifier) {
+                    classifier = moduleIdentifier.getName().getClassifier();
+                }
 
                 var dataEntry = new ResolvedJarJarArtifact(result.getFile(), embeddedFilename, version, versionRange, jarIdentifier.group(), jarIdentifier.artifact(), classifier);
                 if (!filesAdded.add(embeddedFilename)) {

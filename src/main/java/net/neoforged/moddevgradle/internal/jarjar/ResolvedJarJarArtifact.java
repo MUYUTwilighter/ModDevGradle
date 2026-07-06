@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.jar.JarFile;
 import java.util.jar.Manifest;
+
 import net.neoforged.jarjar.metadata.ContainedJarIdentifier;
 import net.neoforged.jarjar.metadata.ContainedJarMetadata;
 import net.neoforged.jarjar.metadata.ContainedVersion;
@@ -25,7 +26,7 @@ public class ResolvedJarJarArtifact {
     private final String classifier;
 
     public ResolvedJarJarArtifact(File file, String embeddedFilename, String version, String versionRange, String group, String artifact) {
-        this(file,  embeddedFilename, version, versionRange, group, artifact, null);
+        this(file, embeddedFilename, version, versionRange, group, artifact, null);
     }
 
     public ResolvedJarJarArtifact(File file, String embeddedFilename, String version, String versionRange, String group, String artifact, String classifier) {
@@ -39,15 +40,14 @@ public class ResolvedJarJarArtifact {
     }
 
     public ContainedJarIdentifier createContainedJarIdentifier() {
-//        return new ContainedJarIdentifier(group, artifact, classifier);
-        return new ContainedJarIdentifier(group, artifact);
+        return new ContainedJarIdentifier(group, artifact, classifier);
     }
 
     public ContainedVersion createContainedVersion() {
         try {
             return new ContainedVersion(
-                    VersionRange.createFromVersionSpec(versionRange),
-                    new DefaultArtifactVersion(version));
+                VersionRange.createFromVersionSpec(versionRange),
+                new DefaultArtifactVersion(version));
         } catch (InvalidVersionSpecificationException e) {
             throw new RuntimeException(e);
         }
