@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import net.neoforged.jarjar.metadata.ContainedJarIdentifier;
+import net.neoforged.moddevgradle.internal.utils.DependencyUtils;
 import org.apache.maven.artifact.versioning.ArtifactVersion;
 import org.apache.maven.artifact.versioning.InvalidVersionSpecificationException;
 import org.apache.maven.artifact.versioning.VersionRange;
@@ -119,6 +120,8 @@ public abstract class JarJarArtifacts {
                     classifier = metadata.getName().getClassifier();
                 } else if (identifier instanceof DefaultModuleComponentArtifactIdentifier moduleIdentifier) {
                     classifier = moduleIdentifier.getName().getClassifier();
+                } else {
+                    classifier = DependencyUtils.guessClassifier(result);
                 }
 
                 var dataEntry = new ResolvedJarJarArtifact(result.getFile(), embeddedFilename, version, versionRange, jarIdentifier.group(), jarIdentifier.artifact(), classifier);
