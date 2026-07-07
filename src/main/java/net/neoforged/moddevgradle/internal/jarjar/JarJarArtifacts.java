@@ -114,7 +114,7 @@ public abstract class JarJarArtifacts {
             if (version != null && versionRange != null) {
                 var embeddedFilename = getEmbeddedFilename(result, jarIdentifier);
 
-                String classifier = "";
+                String classifier;
                 ComponentArtifactIdentifier identifier = result.getId();
                 if (identifier instanceof ComponentArtifactMetadata metadata) {
                     classifier = metadata.getName().getClassifier();

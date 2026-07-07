@@ -1,6 +1,5 @@
 package net.neoforged.moddevgradle.internal.utils;
 
-import net.neoforged.jarjar.metadata.ContainedJarIdentifier;
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier;
 import org.gradle.api.artifacts.result.ResolvedArtifactResult;
 import org.jetbrains.annotations.ApiStatus;
